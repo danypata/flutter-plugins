@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
-import android.preference.PreferenceManager;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -16,9 +18,6 @@ import com.google.android.gms.tasks.Task;
 
 import java.util.HashMap;
 
-import androidx.annotation.NonNull;
-
-import androidx.annotation.RequiresApi;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
@@ -28,14 +27,14 @@ import io.flutter.plugin.common.EventChannel;
  * ActivityRecognitionFlutterPlugin
  */
 public class ActivityRecognitionFlutterPlugin implements FlutterPlugin, EventChannel.StreamHandler, ActivityAware, SharedPreferences.OnSharedPreferenceChangeListener {
+    public static final String DETECTED_ACTIVITY = "detected_activity";
+    public static final String ACTIVITY_RECOGNITION = "activity_recognition_flutter";
+    private final String TAG = "activity_recognition_flutter";
     private EventChannel channel;
     private EventChannel.EventSink eventSink;
     private Activity androidActivity;
     private Context androidContext;
-    public static final String DETECTED_ACTIVITY = "detected_activity";
-    public static final String ACTIVITY_RECOGNITION = "activity_recognition_flutter";
-
-    private final String TAG = "activity_recognition_flutter";
+    private PendingIntent pendingIntent;
 
     /**
      * The main function for starting activity tracking.
@@ -46,7 +45,7 @@ public class ActivityRecognitionFlutterPlugin implements FlutterPlugin, EventCha
 
         // Start the service
         Intent intent = new Intent(androidActivity, ActivityRecognizedService.class);
-        PendingIntent pendingIntent = PendingIntent.getService(androidActivity, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        pendingIntent = PendingIntent.getService(androidActivity, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         /// Frequency in milliseconds
         long frequency = 5 * 1000;
@@ -84,8 +83,10 @@ public class ActivityRecognitionFlutterPlugin implements FlutterPlugin, EventCha
         HashMap<String, Object> args = (HashMap<String, Object>) arguments;
         Log.d(TAG, "args: " + args);
         boolean fg = (boolean) args.get("foreground");
-        startForegroundService();
-        Log.d(TAG, "foreground: " + fg);
+        if (fg) {
+            startForegroundService();
+            Log.d(TAG, "foreground: " + fg);
+        }
 
 
         eventSink = events;
@@ -117,6 +118,9 @@ public class ActivityRecognitionFlutterPlugin implements FlutterPlugin, EventCha
 
     @Override
     public void onCancel(Object arguments) {
+        Log.d(TAG, "STOPPING");
+        ActivityRecognition.getClient(androidContext)
+                .removeActivityUpdates(pendingIntent);
         channel.setStreamHandler(null);
     }
 
