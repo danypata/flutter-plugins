@@ -7,7 +7,7 @@ public class SwiftActivityRecognitionFlutterPlugin: NSObject, FlutterPlugin {
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let handler = ActivityStreamHandler()
-    let channel = FlutterMethodChannel(name: "activity_recognition_flutter", binaryMessenger: registrar.messenger())
+    let channel = FlutterEventChannel(name: "activity_recognition_flutter", binaryMessenger: registrar.messenger())
     channel.setStreamHandler(handler)
   }
 }
